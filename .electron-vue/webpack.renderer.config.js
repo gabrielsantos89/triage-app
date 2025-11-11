@@ -1,7 +1,7 @@
 'use strict'
 
+const sass = require('sass')
 process.env.BABEL_ENV = 'renderer'
-
 const path = require('path')
 const { dependencies } = require('../package.json')
 const webpack = require('webpack')
@@ -44,7 +44,16 @@ let rendererConfig = {
       },
       {
         test: /\.scss$/,
-        use: ['vue-style-loader', 'css-loader', 'sass-loader']
+        use: [
+          'vue-style-loader',
+          'css-loader',
+          {
+            loader: 'sass-loader',
+            options: {
+              implementation: sass
+            }
+          }
+        ]
       },
       {
         test: /\.sass$/,

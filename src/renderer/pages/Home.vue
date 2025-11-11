@@ -105,18 +105,66 @@
             </li>
           </ul>
         </div>
+        <div class="customer-inputs columns is-multiline is-mobile">
+            <div class="column is-6">
+                <div class="field">
+                <label class="label">Nome</label>
+                <div class="control">
+                    <input 
+                      class="input is-large" 
+                      :class="{ 'is-danger': !isNameValido && customer.name.length > 0, 'is-success': isNameValido }"
+                      type="text" 
+                      v-model="customer.name" @focus="onInputFocus('name')" ref="nameInput"
+                    >
+                </div>
+                <p class="help is-danger" v-if="!isNameValido && customer.name.length > 0">
+                  Mín. 3 letras, sem números
+                </p>
+            </div>
+            </div>
+            <div class="column is-6">
+                <div class="field">
+                <label class="label">Documento (CPF)</label>
+                <div class="control">
+                    <input 
+                      class="input is-large" 
+                      :class="{ 'is-danger': !isCpfValido && customer.id.length > 0, 'is-success': isCpfValido }"
+                      type="tel" 
+                      v-model="customer.id" 
+                      @focus="onInputFocus('id')"
+                      maxlength="14"
+                      placeholder="___.___.___-__"
+                      ref="cpfInput"
+                    >
+                </div>
+                <p class="help is-danger" v-if="!isCpfValido && customer.id.length > 0">
+                  CPF inválido
+                </p>
+            </div>
+            </div>
+        </div>
         <div class="columns is-multiline is-mobile">
           <div :class="columnClasses()">
-            <button type="button" class="button is-xlarge is-block" :style="{'color': config.buttonNormalFontColor,'background-color': config.buttonNormalBgColor}" :disabled="busy" @click="ticket(null)">
+            <button type="button" class="button is-xlarge is-block" :style="{'color': config.buttonNormalFontColor,'background-color': config.buttonNormalBgColor}" :disabled="busy || !isNameValido || !isCpfValido" @click="ticket(null)">
               {{ 'home.btn.normal'|trans }}
             </button>
           </div>
           <div :class="columnClasses()">
-            <button type="button" class="button is-xlarge is-block" :style="{'color': config.buttonPriorityFontColor,'background-color': config.buttonPriorityBgColor}" :disabled="busy" @click="selectPriority">
+            <button type="button" class="button is-xlarge is-block" :style="{'color': config.buttonPriorityFontColor,'background-color': config.buttonPriorityBgColor}" :disabled="busy || !isNameValido || !isCpfValido" @click="selectPriority">
               {{ 'home.btn.priority'|trans }}
             </button>
           </div>
         </div>
+        <div class="keyboard-container">
+        <SimpleKeyboard
+          v-model="customer[activeInputName]"
+          :layout="activeLayout" 
+          :layoutName="keyboardLayoutName" 
+          @onKeyPress="onKeyPress"
+          :format="activeInputName === 'id' ? 'cpf' : 'text'"
+          @onEnter="handleEnter"
+        />
+      </div>
       </section>
       <footer :style="{'background-color': config.footerBgColor, 'color': config.footerFontColor}">
         <button type="button" class="button is-large" @click="begin">
@@ -125,7 +173,6 @@
           </span>
           <span>{{ 'home.btn.back'|trans }}</span>
         </button>
-
         <span class="tag is-dark is-large is-pulled-right" v-if="timer">
           {{timer}}s
         </span>
@@ -144,7 +191,7 @@
       <section>
         <div class="columns is-multiline is-mobile">
           <div :class="columnClasses()" v-for="priority in priorities" :key="priority.id">
-            <button type="button" class="button is-danger is-xlarge is-block" :disabled="busy" @click="ticket(priority)" :style="'background-color: ' + priority.cor">
+            <button type="button" class="button is-danger is-xlarge is-block" :disabled="busy || !isNameValido || !isCpfValido" @click="ticket(priority)" :style="'background-color: ' + priority.cor">
               {{priority.nome}}
             </button>
           </div>
@@ -205,6 +252,7 @@
 
 <script>
   import auth from '@/store/modules/auth'
+  import SimpleKeyboard from '@/components/SimpleKeyboard.vue'
   import axios from 'axios'
   import { log } from '@/util/functions'
 
@@ -307,6 +355,9 @@
 
   export default {
     name: 'home',
+    components: {
+    SimpleKeyboard // Regista o nosso novo componente
+    },
     data () {
       return {
         busy: false,
@@ -327,7 +378,31 @@
         ticketInfo: null,
         timer: null,
         startTime: null,
-        showMenu: true
+        showMenu: true,
+        activeInputName: 'name',
+        keyboardLayoutName: 'default',
+        nameLayout: {
+          'default': [
+            'q w e r t y u i o p',
+            'a s d f g h j k l ç {enter}',
+            '{shift} z x c v b n m {backspace}',
+            '{space}'
+          ],
+          'shift': [
+            'Q W E R T Y U I O P',
+            'A S D F G H J K L Ç {enter}',
+            '{shift} Z X C V B N M {backspace}',
+            '{space}'
+          ]
+        },
+        cpfLayout: {
+        'default': [
+          '1 2 3',
+          '4 5 6',
+          '7 8 9',
+          '0 {backspace}'
+        ]
+      }
       }
     },
     computed: {
@@ -346,6 +421,18 @@
           }
         })
         return priority
+      },
+      isCpfValido () {
+        return this.validaCPF(this.customer.id)
+      },
+      isNameValido () {
+        return this.validaNome(this.customer.name)
+      },
+      activeLayout () {
+      if (this.activeInputName === 'id') {
+        return this.cpfLayout;
+      }
+      return this.nameLayout;
       }
     },
     methods: {
@@ -355,22 +442,29 @@
         this.service = null
         this.ticketInfo = null
         this.timer = null
+        this.customer.name = ''
+        this.customer.id = ''
       },
 
       tick () {
-        if (this.page !== this.firstPage) {
-          if (this.timer === null) {
-            this.timer = this.startTime
-          } else {
-            this.timer--
-          }
-          if (this.timer <= 0) {
-            this.timer = null
-            this.page = this.firstPage
-          }
-        }
-      },
+          if (this.page !== this.firstPage) {
+            if (this.timer === null) {
+              if (this.page === 'printing') {
+                this.timer = 15; 
+              } else {
+                this.timer = this.startTime;
+              }
 
+
+            } else {
+              this.timer--
+            }
+            if (this.timer <= 0) {
+              this.timer = null
+              this.page = this.firstPage
+            }
+          }
+        },
       selectDepartment (department) {
         this.page = 'department'
         this.department = department
@@ -393,6 +487,12 @@
         }
         // exibe tela para escolha da prioridade
         this.page = 'service'
+        this.$nextTick(() => {
+          // Aciona o nosso novo método de foco
+          this.onInputFocus('name'); 
+          // Foca fisicamente o campo de input
+          this.$refs.nameInput.focus(); 
+        })
       },
 
       selectPriority () {
@@ -551,6 +651,104 @@
 
           this.begin()
         })
+      },
+
+      validaCPF (cpf) {
+        if (!cpf) return false
+        cpf = cpf.replace(/[^\d]/g, '')
+
+        if (cpf.length !== 11) return false
+
+        if (
+          cpf === '00000000000' ||
+          cpf === '11111111111' ||
+          cpf === '22222222222' ||
+          cpf === '33333333333' ||
+          cpf === '44444444444' ||
+          cpf === '55555555555' ||
+          cpf === '66666666666' ||
+          cpf === '77777777777' ||
+          cpf === '88888888888' ||
+          cpf === '99999999999'
+        ) {
+          return false
+        }
+
+        // Valida 1o digito
+        let soma = 0
+        for (let i = 0; i < 9; i++) {
+          soma += parseInt(cpf.charAt(i)) * (10 - i)
+        }
+        let resto = 11 - (soma % 11)
+        if (resto === 10 || resto === 11) resto = 0
+        if (resto !== parseInt(cpf.charAt(9))) return false
+
+        // Valida 2o digito
+        soma = 0
+        for (let i = 0; i < 10; i++) {
+          soma += parseInt(cpf.charAt(i)) * (11 - i)
+        }
+        resto = 11 - (soma % 11)
+        if (resto === 10 || resto === 11) resto = 0
+        if (resto !== parseInt(cpf.charAt(10))) return false
+
+        return true
+      },
+      validaNome (nome) {
+        if (!nome) return false
+  
+        const name = nome.trim()
+  
+        // 1. Verifica o tamanho mínimo
+        if (name.length < 3) {
+          return false
+        }
+  
+        // 2. Verifica se contém números (regex simples)
+        const hasNumbers = /\d/
+        if (hasNumbers.test(name)) {
+          return false
+        }
+  
+        return true
+      },
+      
+      onInputFocus (inputName) {
+        this.activeInputName = inputName;
+
+        if (inputName === 'id') {
+          // Se for o CPF, o layout é 'default' (pois o numérico não tem shift)
+          this.keyboardLayoutName = 'default'; 
+        } else {
+          // Se for o Nome, E o campo estiver VAZIO...
+          if (this.customer.name.length === 0) {
+            // ...começa em SHIFT.
+            this.keyboardLayoutName = 'shift';
+          } else {
+            // Se já tiver texto, fica em minúsculas.
+            this.keyboardLayoutName = 'default';
+          }
+        }
+      },
+      onKeyPress (button) {
+        if (this.activeInputName === 'name' && button === '{space}') {
+          this.keyboardLayoutName = 'shift';
+          return;
+        }
+        if (this.keyboardLayoutName === 'shift' && !button.startsWith('{')) {
+          this.keyboardLayoutName = 'default';
+        }
+      },
+      handleEnter () {
+        if (this.activeInputName === 'name') {
+          // 1. Mudar o foco lógico (isto muda o teclado para numérico)
+          this.onInputFocus('id');
+
+          // 2. Focar fisicamente o campo de input do CPF
+          this.$nextTick(() => { // Espera o Vue atualizar
+            this.$refs.cpfInput.focus();
+          });
+        }
       }
     },
     mounted () {
@@ -565,7 +763,7 @@
       this.showMenu = !store.state.config.lockMenu
       document.addEventListener('keydown', this.unlockMenuListener)
 
-      this.startTime = config.timer || 15
+      this.startTime = config.timer || 35
 
       if (!config || !config.server) {
         this.$router.push('/settings')
@@ -591,6 +789,15 @@
     watch: {
       page () {
         this.timer = null
+      },
+      customer: {
+        handler(newValue) {
+          this.timer = this.startTime;
+          if (this.activeInputName === 'name' && newValue.name.length === 0) {
+            this.keyboardLayoutName = 'shift';
+          }
+        },
+        deep: true
       }
     }
   }
@@ -663,4 +870,27 @@
       font-size: 1.5rem
       ul
         padding: 2rem 0
+
+    .customer-inputs
+    margin-bottom: 20px
+    padding: 0 10px
+
+    .label
+      color: inherit
+      font-size: 1.8rem
+      font-weight: 500
+      margin-bottom: 10px
+      text-align: left
+
+    .input
+      font-size: 1.8rem
+      background-color: #fff
+      color: #333
+    .keyboard-container
+      width: 100%
+      position: absolute
+      bottom: 20% // Ajuste para ficar acima do rodapé (footer)
+      left: 0
+      right: 0
+      padding: 0 1vw  
 </style>

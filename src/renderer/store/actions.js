@@ -30,7 +30,7 @@ export const newTicket = ({ state, commit, rootState }, { unityId, serviceId, pr
     const api = new Client(rootState.config.server)
 
     api
-      .ticket(rootState.auth.accessToken, unityId, serviceId, priorityId, customer.id, customer.name)
+      .ticket(rootState.auth.accessToken, unityId, serviceId, priorityId, customer.name, customer.id)
       .then(data => {
         commit('updateLastTicket', data)
         resolve(data)

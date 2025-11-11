@@ -150,12 +150,12 @@
                     <div class="control is-expanded has-icons-left">
                       <span class="select is-fullwidth">
                         <select v-model="config.timer">
-                          <option :value="5">5s</option>
-                          <option :value="10">10s</option>
-                          <option :value="15">15s</option>
-                          <option :value="20">20s</option>
-                          <option :value="25">25s</option>
-                          <option :value="30">30s</option>
+                          <option :value="35">35s</option>
+                          <option :value="40">40s</option>
+                          <option :value="45">45s</option>
+                          <option :value="50">50s</option>
+                          <option :value="55">55s</option>
+                          <option :value="60">60s</option>
                         </select>
                       </span>
                       <span class="icon is-left">
@@ -620,17 +620,17 @@
     // defaults
     ctx.config.locale = ctx.config.locale || 'en'
     ctx.config.columns = ctx.config.columns || 2
-    ctx.config.timer = ctx.config.timer || 10
+    ctx.config.timer = ctx.config.timer || 35
     ctx.config.groupByDepartments = !!ctx.config.groupByDepartments
     ctx.config.services = ctx.config.services || []
     ctx.config.departments = ctx.config.departments || []
     ctx.config.pageBgColor = ctx.config.pageBgColor || '#FFFFFF'
     ctx.config.pageFontColor = ctx.config.pageFontColor || '#000000'
-    ctx.config.headerBgColor = ctx.config.headerBgColor || '#4FC08D'
+    ctx.config.headerBgColor = ctx.config.headerBgColor || '#0047B6'
     ctx.config.headerFontColor = ctx.config.headerFontColor || '#FFFFFF'
-    ctx.config.footerBgColor = ctx.config.footerBgColor || '#F1F1F1'
+    ctx.config.footerBgColor = ctx.config.footerBgColor || '#0047B6'
     ctx.config.footerFontColor = ctx.config.footerFontColor || '#FFFFFF'
-    ctx.config.buttonBgColor = ctx.config.buttonBgColor || '#00C4A7'
+    ctx.config.buttonBgColor = ctx.config.buttonBgColor || '#0047B6'
     ctx.config.buttonFontColor = ctx.config.buttonFontColor || '#FFFFFF'
     ctx.config.buttonNormalBgColor = ctx.config.buttonNormalBgColor || '#209CEE'
     ctx.config.buttonNormalFontColor = ctx.config.buttonNormalFontColor || '#FFFFFF'
